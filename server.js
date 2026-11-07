@@ -49,7 +49,7 @@ function newCode() {
 class Room {
   constructor(code) {
     this.code = code; this.players = []; this.state = 'lobby'; this.cash = 1500;
-    this.game = null; this.hostP = null; this.idle = Date.now();
+    this.game = null; this.hostP = null; this.idle = Date.now(); this.video = null; this.vidAt = 0;
   }
   broadcast(o) {
     const s = JSON.stringify(o);
@@ -60,7 +60,7 @@ class Room {
     const list = this.players.map(q => ({ name: q.name, tok: q.tok, bot: q.bot, connected: q.bot ? true : q.connected }));
     this.players.forEach((p, i) => {
       if (p.bot || !p.connected) return;
-      send(p.ws, { t: 'room', code: this.code, state: this.state, cash: this.cash, host, you: i, players: list });
+      send(p.ws, { t: 'room', code: this.code, state: this.state, cash: this.cash, host, you: i, players: list, video: this.video });
     });
   }
   freeToken() {
@@ -156,6 +156,23 @@ function onMsg(ws, raw) {
     ws.ctx = null; player.connected = false; player.ws = null;
     if (room.state === 'lobby') { room.remove(player); if (rooms.has(room.code)) room.pushRoom(); }
     else if (room.game) { player.bot = true; room.game.makeBot(seat); room.game.onDisconnect(seat); if (room.hostP === player) room.hostP = room.players.find(q => !q.bot && q.connected) || null; room.pushRoom(); room.game.sync(); if (!room.players.some(q => !q.bot && q.connected)) room.destroy(); }
+    return;
+  }
+
+  if (m.t === 'video') {
+    const now = Date.now();
+    if (now - room.vidAt < 600) return;
+    room.vidAt = now;
+    const v = m.video;
+    let nv = null;
+    if (v && typeof v === 'object') {
+      const id = String(v.id);
+      if (v.kind === 'v' && /^[\w-]{11}$/.test(id)) nv = { kind: 'v', id };
+      else if (v.kind === 'p' && /^[\w-]{10,60}$/.test(id)) nv = { kind: 'p', id };
+      else return;
+    }
+    room.video = nv;
+    room.broadcast({ t: 'video', video: nv, by: player.name });
     return;
   }
 

@@ -58,7 +58,16 @@ button{font-family:inherit}
 .float{position:absolute;right:8px;top:4px;font-weight:700;font-size:15px;pointer-events:none;animation:flt 1.4s ease-out forwards}
 .float.up{color:#12a05a}.float.dn{color:#d63a3a}
 @keyframes flt{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-26px)}}
-.logbox{flex:1;min-height:130px;overflow:auto;background:var(--panel);border-radius:14px;padding:8px 10px;font-size:13px;line-height:1.35}
+/* журнал — выдвижная шторка */
+.logwrap{background:var(--panel);border-radius:14px;overflow:hidden;flex:none}
+.logbar{display:flex;align-items:center;gap:8px;width:100%;padding:10px 12px;border:0;background:transparent;color:var(--text);font:inherit;font-weight:600;font-size:14px;cursor:pointer;text-align:left}
+.logbar:focus-visible{outline:3px solid var(--brass);outline-offset:-3px}
+.lbl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:400;color:var(--muted);font-size:13px}
+.lbn{background:var(--accent);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:1px 7px}
+.lbc{transition:transform .2s;color:var(--muted)}
+.logwrap.open .lbc{transform:rotate(180deg)}
+.logwrap.open .lbl{display:none}
+.logbox{max-height:min(38vh,320px);overflow:auto;padding:4px 12px 10px;font-size:13px;line-height:1.35;border-top:1px solid rgba(127,150,140,.2)}
 .lg{padding:3px 0;border-bottom:1px solid rgba(127,150,140,.18);animation:lgin .35s}
 .lg:last-child{border-bottom:0}
 .ld{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
@@ -112,6 +121,23 @@ button{font-family:inherit}
 .deed .dp{padding:5px 8px 0;font-weight:700;font-size:14px}
 .deed .dr{padding:3px 8px 7px;color:#444;line-height:1.35}
 
+/* фото городов */
+.tile.ph .tb{background:linear-gradient(180deg,rgba(0,0,0,.04) 30%,rgba(0,0,0,.74)),var(--img) center/cover no-repeat;color:#fff;justify-content:flex-end}
+.tile.ph .nm{text-shadow:0 1px 3px rgba(0,0,0,.85)}
+.tile.ph .pr{color:#fff;opacity:.95;text-shadow:0 1px 3px rgba(0,0,0,.85)}
+.deed .dimg{height:78px;background-size:cover;background-position:center}
+/* видео по центру */
+.vid{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%}
+.vframe{width:min(100%,max(200px,calc(var(--u)*46)));aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden;display:grid;place-items:center;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+.vframe iframe{width:100%;height:100%;border:0;display:block}
+.vempty{color:#cfeee0;font-size:13px;text-align:center;padding:10px;opacity:.9;line-height:1.4}
+.vform{display:flex;gap:6px;width:min(100%,max(200px,calc(var(--u)*46)))}
+.vform input{flex:1;min-width:0;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.28);background:rgba(0,0,0,.28);color:#fff;font:inherit;font-size:13px}
+.vform input::placeholder{color:rgba(255,255,255,.6)}
+.vform .btn{padding:8px 11px}
+.vmsg{font-size:12px;color:#ffd9a0}
+.center.compact .vframe,.center.compact .vform{width:min(100%,max(200px,calc(var(--u)*32)))}
+.center.hasvid .mark{display:none}
 .btn{padding:10px 15px;border-radius:12px;border:1px solid var(--btn-bd);background:var(--btn);color:var(--text);font-weight:600;font-size:14px;cursor:pointer;transition:transform .12s,background .15s}
 .btn:hover:not(:disabled){transform:translateY(-1px);border-color:var(--accent)}
 .btn:active:not(:disabled){transform:translateY(1px)}
@@ -239,12 +265,16 @@ button{font-family:inherit}
   <aside class="side">
     <div class="head">
       <h1 class="logo">МАГНАТ</h1>
+      <button class="ibtn" id="bVid" title="Показать или скрыть видео (звук продолжит играть)" aria-label="Показать или скрыть видео">📺</button>
       <button class="ibtn" id="bSnd" title="Звук" aria-label="Включить или выключить звук">🔊</button>
       <button class="ibtn" id="bRules" title="Правила" aria-label="Правила игры">📖</button>
       <button class="ibtn" id="bExit" title="Выйти" aria-label="Выйти из игры">🚪</button>
     </div>
     <div class="players" id="players"></div>
-    <div class="logbox" id="log" aria-live="polite"></div>
+    <div class="logwrap" id="logwrap">
+      <button class="logbar" id="logbar" aria-expanded="false" aria-controls="log"><span>📜 Журнал ходов</span><span class="lbn" id="lognew" hidden></span><span class="lbl" id="loglast">пока пусто</span><span class="lbc">▾</span></button>
+      <div class="logbox" id="log" role="log" aria-live="polite" hidden></div>
+    </div>
   </aside>
 </div>
 
@@ -324,6 +354,7 @@ function onServer(d){
     case 'debt':if(d.seat===me)openManage(d.amt);break;
     case 'debtEnd':if(mm&&mm.debt)closeManage();break;
     case 'tradeOffer':onTradeOffer(d);break;
+    case 'video':setVideo(d.video,d.by);break;
   }
 }
 
@@ -355,12 +386,13 @@ $('hName').addEventListener('keydown',e=>{if(e.key==='Enter')($('hCode').value?$
 
 function onRoom(d){
   const prev=room;room=d;me=d.you;
+  if(JSON.stringify(d.video||null)!==JSON.stringify(video)){video=d.video||null;renderVideo();}
   if(d.state==='lobby'){
     if(prev&&prev.state!=='lobby'){G=null;built=false;curPrompt=null;closeManage();$('modalRoot').classList.remove('on');$('modalRoot').innerHTML='';}
     show('lobby');renderLobby();
   }else{
     if(!built)buildBoard();
-    show('game');
+    show('game');renderVideo();
   }
 }
 function renderLobby(){
@@ -415,11 +447,79 @@ function buildBoard(){
     el.innerHTML=h;el.onclick=()=>peekDeed(i);b.appendChild(el);
   });
   const c=document.createElement('div');c.className='center';c.id='center';
-  c.innerHTML=`<p class="mark">МАГНАТ</p><div class="banner" id="banner"></div><div class="dice"><div class="die" id="d1"></div><div class="die" id="d2"></div></div><div id="deed"></div><div class="actions" id="actions"></div>`;
+  c.innerHTML=`<p class="mark">МАГНАТ</p><div class="vid" id="vid"><div class="vframe" id="vframe"></div><form class="vform" id="vform" autocomplete="off"><input id="vurl" type="text" placeholder="Вставь ссылку на видео YouTube" aria-label="Ссылка на видео YouTube"><button class="btn" type="submit" title="Включить для всех игроков" aria-label="Включить видео">▶</button><button class="btn" type="button" id="vclear" title="Выключить видео" aria-label="Выключить видео">✕</button></form><div class="vmsg" id="vmsg"></div></div><div class="banner" id="banner"></div><div class="dice"><div class="die" id="d1"></div><div class="die" id="d2"></div></div><div id="deed"></div><div class="actions" id="actions"></div>`;
   b.appendChild(c);
   const tk=document.createElement('div');tk.className='tokens';tk.id='tokens';b.appendChild(tk);
   setDie($('d1'),1);setDie($('d2'),1);
-  $('log').innerHTML='';
+  $('log').innerHTML='';logUnread=0;$('lognew').hidden=true;$('loglast').textContent='пока пусто';
+  $('vform').onsubmit=e=>{e.preventDefault();const v=parseYT($('vurl').value);if(!v){$('vmsg').textContent='Не похоже на ссылку YouTube.';return;}$('vmsg').textContent='';$('vurl').value='';send({t:'video',video:v});};
+  $('vclear').onclick=()=>send({t:'video',video:null});
+  renderVideo();loadPhotos();
+}
+
+/* ---------- фото городов (Википедия) ---------- */
+/* Чтобы поставить своё фото, впиши ссылку: PHOTO_OVERRIDE['Берлин']='https://...' */
+const PHOTO_OVERRIDE={};
+const PHOTO={};
+let PH={};try{PH=JSON.parse(localStorage.getItem('magnat-photos-v1')||'{}');}catch(e){}
+function applyPhoto(i,src){PHOTO[i]=src;const el=$('tile'+i);if(el){el.style.setProperty('--img','url("'+src+'")');el.classList.add('ph');}}
+function loadPhotos(){
+  BOARD.forEach((t,i)=>{
+    if(t.type!=='street')return;
+    const src=PHOTO_OVERRIDE[t.name]||PH[t.name];
+    if(src){applyPhoto(i,src);return;}
+    const title=t.name.replace(/\u2011/g,'-');
+    fetch('https://ru.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(title))
+      .then(r=>r.ok?r.json():null)
+      .then(j=>{
+        let s=j&&j.thumbnail&&j.thumbnail.source;
+        if(s&&/^https:\/\/upload\.wikimedia\.org\//.test(s)){
+          s=s.replace(/\/\d+px-/,'/360px-');
+          PH[t.name]=s;try{localStorage.setItem('magnat-photos-v1',JSON.stringify(PH));}catch(e){}
+          applyPhoto(i,s);
+        }
+      }).catch(()=>{});
+  });
+}
+
+/* ---------- YouTube ---------- */
+let video=null,vidOpen=window.innerWidth>=640;
+function parseYT(s){
+  s=(s||'').trim();if(!s)return null;
+  if(/^[\w-]{11}$/.test(s))return{kind:'v',id:s};
+  let u;try{u=new URL(/^https?:\/\//i.test(s)?s:'https://'+s);}catch(e){return null;}
+  const h=u.hostname.replace(/^(www|m)\./,'');
+  const list=u.searchParams.get('list');
+  let id=null;
+  if(h==='youtu.be')id=u.pathname.slice(1).split('/')[0];
+  else if(['youtube.com','music.youtube.com','youtube-nocookie.com'].includes(h)){
+    if(u.pathname==='/watch')id=u.searchParams.get('v');
+    else{const m=u.pathname.match(/^\/(?:embed|shorts|live|v)\/([\w-]{11})/);if(m)id=m[1];}
+  }else return null;
+  if(id&&/^[\w-]{11}$/.test(id))return{kind:'v',id};
+  if(list&&/^[\w-]{10,60}$/.test(list))return{kind:'p',id:list};
+  return null;
+}
+const embedUrl=v=>v.kind==='v'
+  ?'https://www.youtube-nocookie.com/embed/'+v.id+'?autoplay=1&rel=0&playsinline=1'
+  :'https://www.youtube-nocookie.com/embed/videoseries?list='+v.id+'&autoplay=1&rel=0&playsinline=1';
+function renderVideo(){
+  const fr=$('vframe'),c=$('center');if(!fr||!c)return;
+  c.classList.toggle('hasvid',vidOpen);$('vid').hidden=!vidOpen;
+  const key=video?video.kind+video.id:'';
+  if(fr.dataset.key===key&&fr.firstChild)return;
+  fr.dataset.key=key;fr.innerHTML='';
+  if(!video){fr.innerHTML='<div class="vempty">Вставь ссылку на YouTube ниже:<br>видео включится у всех в комнате</div>';return;}
+  const f=document.createElement('iframe');
+  f.src=embedUrl(video);f.title='YouTube';
+  f.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';f.allowFullscreen=true;
+  f.referrerPolicy='strict-origin-when-cross-origin';
+  fr.appendChild(f);
+}
+function setVideo(v,by){
+  const changed=JSON.stringify(v)!==JSON.stringify(video);
+  video=v;renderVideo();
+  if(by&&changed)addLog(null,v?`📺 <b>${esc(by)}</b> включил видео`:`📺 <b>${esc(by)}</b> выключил видео`);
 }
 function deedHTML(i){
   const t=BOARD[i];let body='';
@@ -431,6 +531,7 @@ function deedHTML(i){
   }else{
     body=`<div class="dh" style="background:${GROUPS.util.c}">${t.name==='Водоканал'?'🚰':'💡'} ${t.name}</div><div class="dp">${money(t.price)}</div><div class="dr">Аренда: 4× очков на кубиках,<br>10× — если обе службы у одного игрока<br>Залог ${money(t.price/2)}</div>`;
   }
+  if(PHOTO[i])body=`<div class="dimg" style='background-image:url("${PHOTO[i]}")'></div>`+body;
   if(G&&G.owner[i]!==null){const o=G.players[G.owner[i]];body+=`<div class="dr">Владелец: <b>${esc(o.name)}</b>${G.mort[i]?' (в залоге)':''}${t.type==='street'&&G.houses[i]?' · '+(G.houses[i]===5?'отель':G.houses[i]+' дом.'):''}</div>`;}
   return `<div class="deed">${body}</div>`;
 }
@@ -522,10 +623,17 @@ function renderPlayers(){
     return `<div class="pc${G.turn===p.id&&!G.over?' cur':''}${p.bankrupt?' out':''}${p.id===me?' me':''}${p.connected?'':' off'}" id="pc${p.id}" style="--pc:${c}"><div class="tk" style="background:${c}">${e}</div><div class="pi"><div class="pn">${esc(p.name)}${p.bot?' 🤖':''}${p.connected?'':' 📡'}${p.inJail?' 🔒':''}${p.jf?' 🎟':''}</div><div class="cash">${p.bankrupt?'банкрот':money(shown[p.id])}</div><div class="dots">${dots}</div></div></div>`;
   }).join('');
 }
+let logOpen=false,logUnread=0;
 function addLog(pid,msg){
   const d=document.createElement('div');d.className='lg';
   d.innerHTML=(pid!=null&&G?`<i class="ld" style="background:${TOKENS[G.players[pid].tok][1]}"></i>`:'')+msg;
   const L=$('log');L.prepend(d);while(L.children.length>90)L.lastChild.remove();
+  const last=$('loglast');if(last)last.textContent=d.textContent;
+  if(!logOpen){logUnread++;const n=$('lognew');n.textContent=logUnread>99?'99+':'+'+logUnread;n.hidden=false;}
+}
+function setLogOpen(o){
+  logOpen=o;$('logwrap').classList.toggle('open',o);$('log').hidden=!o;$('logbar').setAttribute('aria-expanded',String(o));
+  if(o){logUnread=0;$('lognew').hidden=true;}
 }
 function banner(text){const b=$('banner');if(!b)return;b.textContent=text;b.classList.remove('in');void b.offsetWidth;b.classList.add('in');}
 
@@ -588,6 +696,7 @@ function renderActions(){
   const w=G.waiting;
   if(w&&w.phase==='buy')$('deed').innerHTML=deedHTML(w.info);
   else if(!peekActive)$('deed').innerHTML='';
+  $('center').classList.toggle('compact',!!$('deed').firstChild);
   if(!w){box.innerHTML='';return;}
   const wp=G.players[w.seat];
   if(w.phase==='debt'){box.innerHTML=`<div class="think">${w.seat===me?'Нужно собрать деньги…':esc(wp.name)+' собирает деньги…'}</div>`;return;}
@@ -702,6 +811,8 @@ function onTradeOffer(d){
 }
 
 /* ---------- прочее ---------- */
+$('logbar').onclick=()=>setLogOpen(!logOpen);
+$('bVid').onclick=()=>{vidOpen=!vidOpen;renderVideo();};
 $('bSnd').onclick=()=>{muted=!muted;$('bSnd').textContent=muted?'🔇':'🔊';};
 $('bExit').onclick=()=>{
   const m=openModal('rules');
@@ -721,7 +832,8 @@ $('bRules').onclick=()=>{
   <p><b>Тюрьма:</b> выйти можно за $50, картой, дублем или после третьей неудачной попытки.</p>
   <p><b>Долги:</b> если не хватает денег, продай дома и заложи улицы. Если и это не помогает, ты банкрот.</p>
   <p><b>Время:</b> на ход даётся 90 секунд, потом решение принимает бот. Если связь пропала, бот ходит за тебя и отдаёт управление, когда ты вернёшься.</p>
-  <p class="muted">Нажми на любую улицу на доске, чтобы увидеть её карточку.</p></div>
+  <p><b>Видео:</b> вставь ссылку на YouTube под плеером в центре доски. Видео включится у всех игроков комнаты. Кнопка 📺 в боковой панели скрывает плеер, звук при этом продолжает играть. Некоторые ролики запрещают встраивание и не откроются.</p>
+  <p class="muted">Нажми на любую улицу на доске, чтобы увидеть её карточку. Фото городов взяты из Википедии (Wikimedia Commons).</p></div>
   <div class="row"><button class="btn primary" id="rok">Понятно</button></div>`;
   $('rok').onclick=closeModal;
 };
