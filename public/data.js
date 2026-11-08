@@ -12,67 +12,97 @@
     station:{ c: '#6b7a85', house: 0,   name: 'Вокзалы' },
     util:   { c: '#a7a05a', house: 0,   name: 'Коммунальные' }
   };
+  GROUPS.teal = { c: '#14b8a6', house: 100, name: 'Бирюзовые' };
   const S = (name, grp, price, rent) => ({ type: 'street', name, grp, price, rent });
+  const ST = name => ({ type: 'station', name, price: 200 });
+  const UT = name => ({ type: 'util', name, price: 150 });
+  const TX = (name, amount, icon) => ({ type: 'tax', name, amount, icon });
+  const CH = { type: 'chance', name: 'Шанс' }, CS = { type: 'chest', name: 'Сюрприз' };
+  const GO = { type: 'go', name: 'СТАРТ' }, JAIL = { type: 'jail', name: 'Тюрьма' };
+  const PARK = { type: 'parking', name: 'Бесплатная парковка' }, GOJ = { type: 'gojail', name: 'В тюрьму!' };
 
-  /* Названия клеток можно менять здесь */
-  const BOARD = [
-    { type: 'go', name: 'СТАРТ' },
-    S('Ханой', 'brown', 60, [2, 10, 30, 90, 160, 250]),
-    { type: 'chest', name: 'Сюрприз' },
-    S('Манила', 'brown', 60, [4, 20, 60, 180, 320, 450]),
-    { type: 'tax', name: 'Налог на доход', amount: 200 },
-    { type: 'station', name: 'Северный вокзал', price: 200 },
-    S('Каир', 'lblue', 100, [6, 30, 90, 270, 400, 550]),
-    { type: 'chance', name: 'Шанс' },
-    S('Лима', 'lblue', 100, [6, 30, 90, 270, 400, 550]),
-    S('Богота', 'lblue', 120, [8, 40, 100, 300, 450, 600]),
-    { type: 'jail', name: 'Тюрьма' },
-    S('Стамбул', 'pink', 140, [10, 50, 150, 450, 625, 750]),
-    { type: 'util', name: 'Электростанция', price: 150 },
-    S('Афины', 'pink', 140, [10, 50, 150, 450, 625, 750]),
-    S('Лиссабон', 'pink', 160, [12, 60, 180, 500, 700, 900]),
-    { type: 'station', name: 'Восточный порт', price: 200 },
-    S('Прага', 'orange', 180, [14, 70, 200, 550, 750, 950]),
-    { type: 'chest', name: 'Сюрприз' },
-    S('Вена', 'orange', 180, [14, 70, 200, 550, 750, 950]),
-    S('Будапешт', 'orange', 200, [16, 80, 220, 600, 800, 1000]),
-    { type: 'parking', name: 'Бесплатная парковка' },
-    S('Мадрид', 'red', 220, [18, 90, 250, 700, 875, 1050]),
-    { type: 'chance', name: 'Шанс' },
-    S('Рим', 'red', 220, [18, 90, 250, 700, 875, 1050]),
-    S('Берлин', 'red', 240, [20, 100, 300, 750, 925, 1100]),
-    { type: 'station', name: 'Южный аэропорт', price: 200 },
-    S('Сеул', 'yellow', 260, [22, 110, 330, 800, 975, 1150]),
-    S('Сингапур', 'yellow', 260, [22, 110, 330, 800, 975, 1150]),
-    { type: 'util', name: 'Водоканал', price: 150 },
-    S('Токио', 'yellow', 280, [24, 120, 360, 850, 1025, 1200]),
-    { type: 'gojail', name: 'В тюрьму!' },
-    S('Лондон', 'green', 300, [26, 130, 390, 900, 1100, 1275]),
-    S('Париж', 'green', 300, [26, 130, 390, 900, 1100, 1275]),
-    { type: 'chest', name: 'Сюрприз' },
-    S('Дубай', 'green', 320, [28, 150, 450, 1000, 1200, 1400]),
-    { type: 'station', name: 'Западный терминал', price: 200 },
-    { type: 'chance', name: 'Шанс' },
-    S('Нью‑Йорк', 'dblue', 350, [35, 175, 500, 1100, 1300, 1500]),
-    { type: 'tax', name: 'Налог на роскошь', amount: 100 },
-    S('Гонконг', 'dblue', 400, [50, 200, 600, 1400, 1700, 2000])
-  ];
-
+  /* Названия и цены клеток можно менять здесь */
+  const T = {
+    hanoi: S('Ханой', 'brown', 60, [2, 10, 30, 90, 160, 250]),
+    manila: S('Манила', 'brown', 60, [4, 20, 60, 180, 320, 450]),
+    jakarta: S('Джакарта', 'brown', 80, [5, 25, 75, 210, 360, 520]),
+    cairo: S('Каир', 'lblue', 100, [6, 30, 90, 270, 400, 550]),
+    lima: S('Лима', 'lblue', 100, [6, 30, 90, 270, 400, 550]),
+    bogota: S('Богота', 'lblue', 120, [8, 40, 100, 300, 450, 600]),
+    casablanca: S('Касабланка', 'lblue', 130, [9, 45, 120, 350, 500, 650]),
+    istanbul: S('Стамбул', 'pink', 140, [10, 50, 150, 450, 625, 750]),
+    athens: S('Афины', 'pink', 140, [10, 50, 150, 450, 625, 750]),
+    lisbon: S('Лиссабон', 'pink', 160, [12, 60, 180, 500, 700, 900]),
+    barcelona: S('Барселона', 'pink', 170, [13, 65, 195, 525, 725, 925]),
+    prague: S('Прага', 'orange', 180, [14, 70, 200, 550, 750, 950]),
+    vienna: S('Вена', 'orange', 180, [14, 70, 200, 550, 750, 950]),
+    budapest: S('Будапешт', 'orange', 200, [16, 80, 220, 600, 800, 1000]),
+    krakow: S('Краков', 'orange', 210, [18, 90, 250, 625, 825, 1025]),
+    sydney: S('Сидней', 'teal', 210, [17, 85, 240, 620, 820, 1020]),
+    melbourne: S('Мельбурн', 'teal', 220, [18, 90, 255, 650, 850, 1040]),
+    madrid: S('Мадрид', 'red', 220, [18, 90, 250, 700, 875, 1050]),
+    rome: S('Рим', 'red', 220, [18, 90, 250, 700, 875, 1050]),
+    berlin: S('Берлин', 'red', 240, [20, 100, 300, 750, 925, 1100]),
+    milan: S('Милан', 'red', 250, [21, 105, 315, 775, 950, 1125]),
+    seoul: S('Сеул', 'yellow', 260, [22, 110, 330, 800, 975, 1150]),
+    singapore: S('Сингапур', 'yellow', 260, [22, 110, 330, 800, 975, 1150]),
+    tokyo: S('Токио', 'yellow', 280, [24, 120, 360, 850, 1025, 1200]),
+    osaka: S('Осака', 'yellow', 290, [26, 130, 380, 875, 1050, 1225]),
+    london: S('Лондон', 'green', 300, [26, 130, 390, 900, 1100, 1275]),
+    paris: S('Париж', 'green', 300, [26, 130, 390, 900, 1100, 1275]),
+    dubai: S('Дубай', 'green', 320, [28, 150, 450, 1000, 1200, 1400]),
+    amsterdam: S('Амстердам', 'green', 330, [30, 160, 480, 1050, 1250, 1450]),
+    newyork: S('Нью‑Йорк', 'dblue', 350, [35, 175, 500, 1100, 1300, 1500]),
+    shanghai: S('Шанхай', 'dblue', 380, [45, 190, 550, 1250, 1500, 1800]),
+    hongkong: S('Гонконг', 'dblue', 400, [50, 200, 600, 1400, 1700, 2000]),
+    stN: ST('Северный вокзал'), stE: ST('Восточный порт'), stS: ST('Южный аэропорт'), stW: ST('Западный терминал'),
+    stC: ST('Центральная станция'), stSea: ST('Морской порт'),
+    utE: UT('Электростанция'), utW: UT('Водоканал'), utI: UT('Интернет‑провайдер'),
+    taxI: TX('Налог на доход', 200, '💸'), taxL: TX('Налог на роскошь', 100, '💎'), taxP: TX('Налог на недвижимость', 150, '🏛️')
+  };
   const gk = t => (t.type === 'street' ? t.grp : t.type);
-  const GROUP_IDX = {};
-  BOARD.forEach((t, i) => {
-    if (['street', 'station', 'util'].includes(t.type)) (GROUP_IDX[gk(t)] = GROUP_IDX[gk(t)] || []).push(i);
-  });
+
+  function makeMap(key, label, note, sides, view) {
+    const BOARD = [GO, ...sides.bottom, JAIL, ...sides.left, PARK, ...sides.top, GOJ, ...sides.right];
+    const GROUP_IDX = {};
+    BOARD.forEach((t, i) => {
+      if (['street', 'station', 'util'].includes(t.type)) (GROUP_IDX[gk(t)] = GROUP_IDX[gk(t)] || []).push(i);
+    });
+    const S4 = BOARD.length / 4;
+    return Object.assign({ key, label, note, BOARD, GROUP_IDX, N: BOARD.length, S: S4, jail: S4, gojail: 3 * S4 }, view);
+  }
+  const MAPS = {
+    classic: makeMap('classic', 'Классика', '40 клеток, для 2–6 игроков', {
+      bottom: [T.hanoi, CS, T.manila, T.taxI, T.stN, T.cairo, CH, T.lima, T.bogota],
+      left: [T.istanbul, T.utE, T.athens, T.lisbon, T.stE, T.prague, CS, T.vienna, T.budapest],
+      top: [T.madrid, CH, T.rome, T.berlin, T.stS, T.seoul, T.singapore, T.utW, T.tokyo],
+      right: [T.london, T.paris, CS, T.dubai, T.stW, CH, T.newyork, T.taxL, T.hongkong]
+    }, { scale: 1, tk: 1, tf: 1 }),
+    large: makeMap('large', 'Большая', '48 клеток, для 7–8 игроков', {
+      bottom: [T.hanoi, CS, T.manila, T.jakarta, T.taxI, T.stN, T.cairo, CH, T.lima, T.bogota, T.utI],
+      left: [T.istanbul, T.utE, T.athens, T.lisbon, T.stE, T.prague, CS, T.vienna, T.budapest, T.sydney, T.melbourne],
+      top: [T.madrid, CH, T.rome, T.berlin, T.stS, CS, T.seoul, T.singapore, T.utW, T.tokyo, T.stC],
+      right: [T.london, T.paris, CS, T.dubai, CH, T.stW, CH, T.newyork, T.taxL, T.shanghai, T.hongkong]
+    }, { scale: 1.1, tk: .92, tf: .95 }),
+    xl: makeMap('xl', 'Гигант', '56 клеток, для 9–10 игроков', {
+      bottom: [T.hanoi, CS, T.manila, T.jakarta, T.taxI, T.stN, T.cairo, CH, T.lima, T.bogota, T.casablanca, T.utI, T.stSea],
+      left: [T.istanbul, T.utE, T.athens, T.lisbon, T.barcelona, T.stE, T.prague, CS, T.vienna, T.budapest, T.krakow, T.sydney, T.melbourne],
+      top: [T.madrid, CH, T.rome, T.berlin, T.milan, T.stS, CS, T.seoul, T.singapore, T.utW, T.tokyo, T.osaka, T.stC],
+      right: [T.london, T.paris, CS, T.dubai, T.amsterdam, CH, T.stW, T.taxP, CH, T.newyork, T.taxL, T.shanghai, T.hongkong]
+    }, { scale: 1.2, tk: .85, tf: .9 })
+  };
+  const autoMap = n => (n <= 6 ? 'classic' : n <= 8 ? 'large' : 'xl');
+  const BOARD = MAPS.classic.BOARD, GROUP_IDX = MAPS.classic.GROUP_IDX;
 
   const TOKENS = [['🚗', '#e63946'], ['🎩', '#3a86ff'], ['🐶', '#e8913a'], ['🚀', '#8338ec'], ['👑', '#d9a400'],
                   ['🐱', '#2a9d8f'], ['🛸', '#00a6c8'], ['🦄', '#ff4fa3'], ['⚓', '#5c677d'], ['🎸', '#b5651d']];
 
   const CHANCE = [
     { t: 'goto', to: 0, text: 'Отправляйся на СТАРТ и получи $200.' },
-    { t: 'goto', to: 37, text: 'Поездка в Нью‑Йорк! Двигайся на «Нью‑Йорк». Проходишь СТАРТ — получи $200.' },
-    { t: 'goto', to: 31, text: 'Отправляйся в Лондон. Проходишь СТАРТ — получи $200.' },
-    { t: 'goto', to: 11, text: 'Отправляйся в Стамбул. Проходишь СТАРТ — получи $200.' },
-    { t: 'goto', to: 5, text: 'Отправляйся на Северный вокзал. Проходишь СТАРТ — получи $200.' },
+    { t: 'goto', to: 'Нью‑Йорк', text: 'Поездка в Нью‑Йорк! Двигайся на «Нью‑Йорк». Проходишь СТАРТ — получи $200.' },
+    { t: 'goto', to: 'Лондон', text: 'Отправляйся в Лондон. Проходишь СТАРТ — получи $200.' },
+    { t: 'goto', to: 'Стамбул', text: 'Отправляйся в Стамбул. Проходишь СТАРТ — получи $200.' },
+    { t: 'goto', to: 'Северный вокзал', text: 'Отправляйся на Северный вокзал. Проходишь СТАРТ — получи $200.' },
     { t: 'near', k: 'station', text: 'Ближайший вокзал. Если он занят — заплати владельцу вдвое больше обычного.' },
     { t: 'near', k: 'station', text: 'Ближайший вокзал. Если он занят — заплати владельцу вдвое больше обычного.' },
     { t: 'near', k: 'util', text: 'Ближайшая коммунальная служба. Если занята — брось кубики и заплати 10× от выпавшего.' },
@@ -106,7 +136,7 @@
   const EMOJIS = ['🚗','🎩','🐶','🚀','👑','🐱','🛸','🦄','⚓','🎸','🦊','🐼','🐸','🐙','🦁','🐯','🐵','🦖','🐢','🦉',
                   '🍕','🍔','🍩','🎮','⚽','🏀','🎲','💎','🔥','⭐','🌵','🤖','👻','🏎️','🚁','🎯'];
   const COLORS = ['#e63946','#3a86ff','#e8913a','#8338ec','#d9a400','#2a9d8f','#00a6c8','#ff4fa3','#5c677d','#b5651d','#2f9e44','#212529'];
-  const MAG = { GROUPS, BOARD, GROUP_IDX, TOKENS, CHANCE, CHEST, EMOJIS, COLORS, gk };
+  const MAG = { GROUPS, BOARD, GROUP_IDX, MAPS, autoMap, TOKENS, CHANCE, CHEST, EMOJIS, COLORS, gk };
   if (typeof module !== 'undefined' && module.exports) module.exports = MAG;
   else root.MAG = MAG;
 })(typeof self !== 'undefined' ? self : globalThis);

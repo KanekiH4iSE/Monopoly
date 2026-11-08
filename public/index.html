@@ -15,7 +15,8 @@
   --bg:#e4ebe8;--panel:#ffffff;--text:#13221e;--muted:#5b6e67;--tile:#f2f5f3;--line:#16322b;
   --center:#0e4a41;--center-text:#e8f5ee;--brass:#f2c14e;--accent:#0f7a5f;--accent-text:#ffffff;
   --btn:#ffffff;--btn-bd:#b7c8c1;--overlay:rgba(7,20,16,.64);--danger:#c53a3a;
-  --bs:min(calc(100vw - 410px),calc(100vh - 28px));
+  --bs0:min(calc(100vw - 410px),calc(100vh - 28px));
+  --bs:var(--bs0);
   --u:calc(var(--bs)/100);
   color-scheme:light;
   padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
@@ -77,7 +78,7 @@ button{font-family:inherit}
   grid-template-columns:1.45fr repeat(9,1fr) 1.45fr;grid-template-rows:1.45fr repeat(9,1fr) 1.45fr;
   gap:1px;background:var(--line);border:3px solid var(--line);border-radius:calc(var(--u)*1.6);overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.28)}
 .tile{background:var(--tile);position:relative;display:flex;overflow:hidden;text-align:center;
-  font-size:max(6.5px,calc(var(--u)*1.18));line-height:1.12;cursor:pointer;min-width:0;min-height:0}
+  font-size:max(6.5px,calc(var(--u)*1.18*var(--tf,1)));line-height:1.12;cursor:pointer;min-width:0;min-height:0}
 .tile.s-b{flex-direction:column}.tile.s-t{flex-direction:column-reverse}
 .tile.s-l{flex-direction:row-reverse}.tile.s-r{flex-direction:row}
 .band{flex:none;display:flex;align-items:center;justify-content:center;gap:1px}
@@ -121,6 +122,32 @@ button{font-family:inherit}
 .deed .dp{padding:5px 8px 0;font-weight:700;font-size:14px}
 .deed .dr{padding:3px 8px 7px;color:#444;line-height:1.35}
 
+/* три карты по числу игроков */
+.board[data-map="large"]{--bs:calc(var(--bs0)*1.1);--u:calc(var(--bs)/100)}
+.board[data-map="xl"]{--bs:calc(var(--bs0)*1.2);--u:calc(var(--bs)/100)}
+/* панель прямо в центре стола: аукцион, обмен, карточки */
+.cpanel{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:calc(var(--u)*1.6);overflow:auto;text-align:center;color:var(--center-text);
+  background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.10),transparent 70%),var(--center);animation:bn .35s}
+.cpanel[hidden]{display:none}
+.cpanel h3{margin:0;font-family:'Unbounded',sans-serif;font-weight:600;font-size:max(15px,calc(var(--u)*2.2))}
+.cpanel .muted,.cpanel .who{color:var(--center-text);opacity:.8}
+.cpanel .flip{width:min(100%,360px)}
+.cpanel .row.ctr{justify-content:center;margin-top:4px}
+.ofcols{display:flex;gap:10px;align-items:stretch;justify-content:center;width:100%}
+.ofside{flex:1;min-width:0;background:rgba(0,0,0,.28);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:5px;align-items:center}
+.ofh{font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px}
+.tkx{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;font-size:13px;border:1.5px solid #fff}
+.ofarrow{align-self:center;font-size:22px;opacity:.8}
+.tchip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);border-radius:999px;padding:3px 10px;font-size:13px}
+.tchip.cash{background:rgba(242,193,78,.25)}
+.need{background:rgba(197,58,58,.35);border:1px solid #ff9a9a;border-radius:10px;padding:8px 10px;font-size:13px;width:100%}
+/* подсветка клеток: обмен, аукцион и покупка */
+.tile.hl,.tile.hl-auc{z-index:5;animation:hlpulse .8s ease-in-out infinite}
+.tile[data-hl]::before{content:attr(data-hl);position:absolute;left:0;right:0;top:0;z-index:7;background:rgba(0,0,0,.82);color:#fff;font-weight:700;font-size:max(7px,calc(var(--u)*1.05));padding:1px 2px;text-align:center;pointer-events:none}
+@keyframes hlpulse{0%,100%{box-shadow:inset 0 0 0 calc(var(--u)*.5) #ffd166;transform:scale(1)}50%{box-shadow:inset 0 0 0 calc(var(--u)*1.2) #ffd166,0 0 calc(var(--u)*3) #ffd166;transform:scale(1.1)}}
+.tile.flash{z-index:6;animation:buyflash .5s ease-in-out 5}
+@keyframes buyflash{0%,100%{box-shadow:inset 0 0 0 0 var(--oc);transform:none}50%{box-shadow:inset 0 0 0 calc(var(--u)*1.8) var(--oc),0 0 calc(var(--u)*3) var(--oc);filter:brightness(1.3) saturate(1.4);transform:scale(1.14)}}
+.btn.mini{padding:6px 10px;font-size:12px;margin-top:6px}
 /* темы доски (личная настройка) */
 .board{color:var(--text)}
 .board[data-theme="night"]{--line:#070b1c;--tile:#131a36;--center:#0d1233;--text:#e8ecff;--muted:#8d97c7;--brass:#7df9ff}
@@ -150,7 +177,6 @@ button{font-family:inherit}
 .pkc.custom input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .pc .pn .ordn{display:inline-block;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:50%;background:var(--pc);color:#fff;font-size:10px;font-weight:700;margin-right:4px}
 /* аукцион */
-#auctionRoot{z-index:57}
 .auc{text-align:center;width:min(430px,100%)}
 .auc .deed{margin:0 auto 10px;width:min(260px,100%)}
 .aucBidRow{font-size:18px;margin:4px 0}
@@ -190,16 +216,16 @@ button{font-family:inherit}
 .btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
 
 .tokens{position:absolute;inset:0;pointer-events:none;z-index:6}
-.tok{position:absolute;left:0;top:0;width:calc(var(--u)*3.3);height:calc(var(--u)*3.3);transform:translate(-50%,-50%);transition:left .17s ease-in-out,top .17s ease-in-out,opacity .6s}
+.tok{position:absolute;left:0;top:0;width:calc(var(--u)*3.3*var(--tk,1));height:calc(var(--u)*3.3*var(--tk,1));transform:translate(-50%,-50%);transition:left .17s ease-in-out,top .17s ease-in-out,opacity .6s}
 .tokens.noanim .tok{transition:none}
-.tin{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;font-size:calc(var(--u)*2);border:2px solid #fff;box-shadow:0 3px 7px rgba(0,0,0,.45)}
+.tin{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;font-size:calc(var(--u)*2*var(--tk,1));border:2px solid #fff;box-shadow:0 3px 7px rgba(0,0,0,.45)}
 .tok.cur .tin{box-shadow:0 0 0 calc(var(--u)*.4) var(--brass),0 3px 9px rgba(0,0,0,.5);animation:pulse 1.4s infinite}
 .tok.gone{opacity:0;transform:translate(-50%,-50%) scale(.3) rotate(200deg)}
 @keyframes pulse{50%{transform:scale(1.1)}}
 
 .layer{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:16px;background:var(--overlay);backdrop-filter:blur(4px);overflow:auto}
 .layer.on{display:flex}
-#modalRoot{z-index:55}#cardRoot{z-index:58}#offerRoot{z-index:60}
+#modalRoot{z-index:55}
 .mc,.sc{background:var(--panel);color:var(--text);border-radius:20px;padding:20px;width:min(560px,100%);max-height:calc(100vh - 40px);overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.45);animation:mpop .3s}
 @keyframes mpop{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
 .mc h3,.sc h2{margin:0 0 10px;font-family:'Unbounded',sans-serif;font-weight:600;font-size:18px}
@@ -257,14 +283,15 @@ button{font-family:inherit}
 @keyframes fall{to{transform:translate(var(--dx),115vh) rotate(720deg)}}
 
 @media (max-width:900px){
-  :root{--bs:min(calc(100vw - 16px),760px)}
+  :root{--bs0:min(calc(100vw - 16px),760px)}
+  .board[data-map]{--bs:var(--bs0);--u:calc(var(--bs)/100)}
   .app{flex-direction:column;align-items:center;padding:8px}
   .side{width:min(100%,var(--bs));max-height:none;position:static}
   .players{max-height:none}
 }
 @media (max-width:440px){.players{grid-template-columns:1fr}.cols{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){
-  .die.rolling,.tok.cur .tin,.trophy,.tile.pop{animation:none}
+  .die.rolling,.tok.cur .tin,.trophy,.tile.pop,.tile.hl,.tile.hl-auc,.tile.flash{animation:none}
   #confetti{display:none}
 }
 </style>
@@ -298,10 +325,13 @@ button{font-family:inherit}
     </div>
     <div id="lhost">
       <div class="row" style="justify-content:flex-start;margin-top:8px"><button class="btn" id="lBot">🤖 Добавить бота</button></div>
+      <div class="sopt"><label for="lmap">Карта</label>
+        <select id="lmap"><option value="auto">Авто (по числу игроков)</option><option value="classic">Классика · 40 клеток (до 6)</option><option value="large">Большая · 48 клеток (7–8)</option><option value="xl">Гигант · 56 клеток (9–10)</option></select></div>
       <div class="sopt"><label for="lcash">Стартовый капитал</label>
         <select id="lcash"><option value="1000">$1 000</option><option value="1500">$1 500</option><option value="2000">$2 000</option><option value="3000">$3 000</option></select></div>
       <div class="row"><button class="btn primary" id="lStart">Начать игру</button></div>
     </div>
+    <p class="muted" id="lmapnote" style="margin-top:10px"></p>
     <div class="chatbox"><div class="chatlist" id="lchat" role="log" aria-live="polite"></div>
       <form class="chatform" id="lcform" autocomplete="off"><input id="lcin" maxlength="200" placeholder="Написать в чат…" aria-label="Сообщение в чат"><button class="btn primary" type="submit" aria-label="Отправить">➤</button></form></div>
     <p class="muted" id="lwait" style="margin-top:12px">Ждём, пока хозяин комнаты начнёт игру. Капитал: <b id="lcashv"></b></p>
@@ -338,15 +368,14 @@ button{font-family:inherit}
 </div>
 
 <div class="layer" id="modalRoot"></div>
-<div class="layer" id="auctionRoot"></div>
-<div class="layer" id="cardRoot"></div>
 <div class="toast" id="toast" role="status" hidden></div>
-<div class="layer" id="offerRoot"></div>
 <div id="confetti"></div>
 
 <script src="/data.js"></script>
 <script>
-const {BOARD,GROUPS,GROUP_IDX,TOKENS,gk}=MAG;
+const {GROUPS,TOKENS,gk}=MAG;
+let MP=MAG.MAPS.classic,BOARD=MP.BOARD,GROUP_IDX=MP.GROUP_IDX,builtMap=null;
+function setMap(k){MP=MAG.MAPS[k]||MAG.MAPS.classic;BOARD=MP.BOARD;GROUP_IDX=MP.GROUP_IDX;}
 const $=id=>document.getElementById(id);
 const rnd=n=>Math.floor(Math.random()*n);
 const money=n=>'$'+Math.round(n).toLocaleString('ru-RU');
@@ -429,8 +458,7 @@ function show(name){
   $('game').hidden=name!=='game';
 }
 function goHome(msg){
-  room=null;G=null;built=false;curPrompt=null;chat=[];renderChat();renderAuction();pk=null;closeManage();$('modalRoot').classList.remove('on');$('modalRoot').innerHTML='';
-  $('offerRoot').classList.remove('on');$('offerRoot').innerHTML='';
+  room=null;G=null;built=false;builtMap=null;offerData=null;curPrompt=null;chat=[];renderChat();renderAuction();pk=null;closeManage();$('modalRoot').classList.remove('on');$('modalRoot').innerHTML='';
   show('home');$('hErr').textContent=msg||'';
 }
 $('hCreate').onclick=()=>{
@@ -453,10 +481,11 @@ function onRoom(d){
   if(d.state!=='lobby'&&pk){pk=null;closeModal();}
   if(JSON.stringify(d.video||null)!==JSON.stringify(video)){video=d.video||null;renderVideo();}
   if(d.state==='lobby'){
-    if(prev&&prev.state!=='lobby'){G=null;built=false;curPrompt=null;closeManage();$('modalRoot').classList.remove('on');$('modalRoot').innerHTML='';}
+    if(prev&&prev.state!=='lobby'){G=null;built=false;builtMap=null;offerData=null;curPrompt=null;closeManage();$('modalRoot').classList.remove('on');$('modalRoot').innerHTML='';}
     show('lobby');renderLobby();renderPicker();
   }else{
-    if(!built)buildBoard();
+    setMap(d.map);
+    if(!built||builtMap!==d.map)buildBoard();
     show('game');renderVideo();
   }
 }
@@ -476,6 +505,8 @@ function renderLobby(){
   $('oAuc').checked=!!(r.opts&&r.opts.auction);$('oJack').checked=!!(r.opts&&r.opts.jackpot);
   $('oAuc').disabled=$('oJack').disabled=!isHost;
   $('lcash').value=String(r.cash);$('lcashv').textContent=money(r.cash);
+  $('lmap').value=r.mapSel||'auto';
+  const mi=MAG.MAPS[r.map];$('lmapnote').textContent=mi?`Карта: ${mi.label}, ${mi.note}${r.mapSel==='auto'?' (выбрана автоматически)':''}`:'';
   $('lBot').disabled=r.players.length>=10;
   $('lStart').disabled=r.players.length<2;
   $('lStart').textContent=r.players.length<2?'Нужно минимум 2 игрока':'Начать игру';
@@ -543,6 +574,7 @@ $('quick').onclick=e=>{const b=e.target.closest('button');if(b)send({t:'chat',te
 function toast(msg){const t=$('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>{t.hidden=true;},2800);}
 $('lBot').onclick=()=>send({t:'addbot'});
 $('lcash').onchange=e=>send({t:'cash',cash:+e.target.value});
+$('lmap').onchange=e=>send({t:'map',map:e.target.value});
 $('lStart').onclick=()=>send({t:'start'});
 $('lLeave').onclick=()=>{send({t:'leave'});saveSession(null);goHome();};
 $('lCopy').onclick=async()=>{
@@ -554,14 +586,17 @@ $('lCopy').onclick=async()=>{
 
 /* ---------- доска ---------- */
 const ICON={go:'⬅️',chance:'❓',chest:'🎁',tax:'💸',station:'🚆',util:'💡',jail:'🔒',parking:'🅿️',gojail:'👮'};
-const sideOf=i=>i%10===0?'c':i<10?'b':i<20?'l':i<30?'t':'r';
-function gridPos(i){if(i<=10)return[11,11-i];if(i<=20)return[21-i,1];if(i<=30)return[1,i-19];return[i-29,11];}
+const sideOf=i=>{const S=MP.S;return i%S===0?'c':i<S?'b':i<2*S?'l':i<3*S?'t':'r';};
+function gridPos(i){const S=MP.S,D=S+1;if(i<=S)return[D,D-i];if(i<=2*S)return[D-(i-S),1];if(i<=3*S)return[1,1+(i-2*S)];return[1+(i-3*S),D];}
 const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
 function setDie(el,v){el.innerHTML=Array.from({length:9},(_,k)=>PIPS[v].includes(k)?'<i class="pip"></i>':'<i></i>').join('');}
 
 function buildBoard(){
-  built=true;
+  built=true;builtMap=MP.key;offerData=null;
   const b=$('board');b.innerHTML='';
+  const D=MP.S+1;
+  b.dataset.map=MP.key;b.style.setProperty('--tf',MP.tf);b.style.setProperty('--tk',MP.tk);
+  b.style.gridTemplateColumns=`1.45fr repeat(${D-2},1fr) 1.45fr`;b.style.gridTemplateRows=`1.45fr repeat(${D-2},1fr) 1.45fr`;
   BOARD.forEach((t,i)=>{
     const [r,c]=gridPos(i),el=document.createElement('div');
     el.className='tile t-'+t.type+' s-'+(sideOf(i)==='c'?'b':sideOf(i));
@@ -569,14 +604,14 @@ function buildBoard(){
     let h='';
     if(t.type==='street')h=`<div class="band" style="background:${GROUPS[t.grp].c}"><span class="hs"></span></div><div class="tb"><div class="nm">${t.name}</div><div class="pr">${money(t.price)}</div></div>`;
     else if(t.price)h=`<div class="tb"><div class="ic">${t.name==='Водоканал'?'🚰':ICON[t.type]}</div><div class="nm">${t.name}</div><div class="pr">${money(t.price)}</div></div>`;
-    else if(t.type==='tax')h=`<div class="tb"><div class="ic">${i===38?'💎':'💸'}</div><div class="nm">${t.name}</div><div class="pr">${money(t.amount)}</div></div>`;
+    else if(t.type==='tax')h=`<div class="tb"><div class="ic">${t.icon||'💸'}</div><div class="nm">${t.name}</div><div class="pr">${money(t.amount)}</div></div>`;
     else if(t.type==='go')h=`<div class="tb"><div class="ic">${ICON.go}</div><div class="nm big">СТАРТ</div><div class="pr">+$200</div></div>`;
     else if(t.type==='jail')h=`<div class="tb"><div class="ic">${ICON.jail}</div><div class="nm big">Тюрьма</div><div class="pr">просто в гостях</div></div>`;
     else h=`<div class="tb"><div class="ic">${ICON[t.type]}</div><div class="nm${t.type==='chance'||t.type==='chest'?'':' big'}">${t.name}</div>${t.type==='parking'?'<div class="pr" id="potv"></div>':''}</div>`;
     el.innerHTML=h;el.onclick=()=>peekDeed(i);b.appendChild(el);
   });
-  const c=document.createElement('div');c.className='center';c.id='center';
-  c.innerHTML=`<p class="mark">МАГНАТ</p><div class="vid" id="vid"><div class="vframe" id="vframe"></div><form class="vform" id="vform" autocomplete="off"><input id="vurl" type="text" placeholder="Вставь ссылку на видео YouTube" aria-label="Ссылка на видео YouTube"><button class="btn" type="submit" title="Включить для всех игроков" aria-label="Включить видео">▶</button><button class="btn" type="button" id="vclear" title="Выключить видео" aria-label="Выключить видео">✕</button></form><div class="vmsg" id="vmsg"></div></div><div class="banner" id="banner"></div><div class="dice"><div class="die" id="d1"></div><div class="die" id="d2"></div></div><div id="deed"></div><div class="actions" id="actions"></div>`;
+  const c=document.createElement('div');c.className='center';c.id='center';c.style.gridRow='2/'+D;c.style.gridColumn='2/'+D;
+  c.innerHTML=`<p class="mark">МАГНАТ</p><div class="vid" id="vid"><div class="vframe" id="vframe"></div><form class="vform" id="vform" autocomplete="off"><input id="vurl" type="text" placeholder="Вставь ссылку на видео YouTube" aria-label="Ссылка на видео YouTube"><button class="btn" type="submit" title="Включить для всех игроков" aria-label="Включить видео">▶</button><button class="btn" type="button" id="vclear" title="Выключить видео" aria-label="Выключить видео">✕</button></form><div class="vmsg" id="vmsg"></div></div><div class="banner" id="banner"></div><div class="dice"><div class="die" id="d1"></div><div class="die" id="d2"></div></div><div id="deed"></div><div class="actions" id="actions"></div><div class="cpanel" id="cpanel" hidden></div>`;
   b.appendChild(c);
   const tk=document.createElement('div');tk.className='tokens';tk.id='tokens';b.appendChild(tk);
   applyTheme();
@@ -657,7 +692,7 @@ function deedHTML(i){
     const r=t.rent;
     body=`<div class="dh" style="background:${GROUPS[t.grp].c}">${t.name}</div><div class="dp">${money(t.price)}</div><div class="dr">Аренда ${r[0]} · с полным набором ${r[0]*2}<br>🏠 ${r[1]} · ${r[2]} · ${r[3]} · ${r[4]} · 🏨 ${r[5]}<br>Дом ${money(GROUPS[t.grp].house)} · залог ${money(t.price/2)}</div>`;
   }else if(t.type==='station'){
-    body=`<div class="dh" style="background:${GROUPS.station.c}">🚆 ${t.name}</div><div class="dp">${money(t.price)}</div><div class="dr">Аренда 25 · 50 · 100 · 200<br>по числу твоих вокзалов<br>Залог ${money(t.price/2)}</div>`;
+    body=`<div class="dh" style="background:${GROUPS.station.c}">🚆 ${t.name}</div><div class="dp">${money(t.price)}</div><div class="dr">Аренда 25 · 50 · 100 · 200, дальше +100<br>по числу вокзалов у владельца<br>Залог ${money(t.price/2)}</div>`;
   }else{
     body=`<div class="dh" style="background:${GROUPS.util.c}">${t.name==='Водоканал'?'🚰':'💡'} ${t.name}</div><div class="dp">${money(t.price)}</div><div class="dr">Аренда: 4× очков на кубиках,<br>10× — если обе службы у одного игрока<br>Залог ${money(t.price/2)}</div>`;
   }
@@ -700,7 +735,7 @@ function layoutTokens(){
   const u=U();
   for(const k in by){
     const arr=by[k],[x,y]=tilePoint(k),cols=Math.ceil(Math.sqrt(arr.length)),rows=Math.ceil(arr.length/cols);
-    arr.forEach((p,j)=>{const r=Math.floor(j/cols),c=j%cols;place(p.id,x+(c-(cols-1)/2)*3.1*u,y+(r-(rows-1)/2)*3.1*u);});
+    arr.forEach((p,j)=>{const r=Math.floor(j/cols),c=j%cols;place(p.id,x+(c-(cols-1)/2)*3.1*MP.tk*u,y+(r-(rows-1)/2)*3.1*MP.tk*u);});
   }
 }
 function relayout(){const L=$('tokens');if(!L)return;L.classList.add('noanim');layoutTokens();requestAnimationFrame(()=>requestAnimationFrame(()=>L.classList.remove('noanim')));}
@@ -715,19 +750,19 @@ function hop(pid,pos){
 /* ---------- состояние ---------- */
 function onState(s){
   G=s;
-  if(!built){buildBoard();show('game');}
+  if(s.map&&(!built||builtMap!==s.map)){setMap(s.map);buildBoard();show('game');}
   if(!$('tok0')||$('tokens').children.length!==G.players.length)createTokens();
   G.players.forEach(p=>{
     if(shown[p.id]===undefined)shown[p.id]=p.cash;
     if(shown[p.id]!==p.cash)tweenCash(p.id,p.cash);
     const t=$('tok'+p.id);if(t){t.classList.toggle('cur',G.turn===p.id&&!p.bankrupt&&!G.over);t.classList.toggle('gone',p.bankrupt);}
   });
-  for(let i=0;i<40;i++)if(GROUP_IDX.station.includes(i)||GROUP_IDX.util.includes(i)||BOARD[i].type==='street')updateTile(i,false);
+  for(let i=0;i<BOARD.length;i++)if(['street','station','util'].includes(BOARD[i].type))updateTile(i,false);
   if(G.waiting)G.waiting.dl=Date.now()+G.waiting.left;
   if(G.auction)G.auction.dl=Date.now()+G.auction.left;
-  renderPlayers();renderActions();renderAuction();
+  renderPlayers();renderActions();renderAuction();if(offerData)renderOffer();
   const pv=$('potv');if(pv)pv.textContent=G.opts&&G.opts.jackpot?'💰 '+money(G.pot):'';
-  if(mm){const stale=!mm.debt&&(!G.waiting||G.waiting.seat!==me);if(stale)closeManage();else if(!mm.trade)renderManage();}
+  if(mm){const stale=!mm.debt&&!mm.trade&&(!G.waiting||G.waiting.seat!==me)&&!(G.offer&&G.offer.to===me);if(stale)closeManage();else if(!mm.trade)renderManage();}
   const mine=!!G.waiting&&G.waiting.seat===me&&G.waiting.phase==='pre';
   if(mine&&!prevTurnMe){snd('turn');if(document.hidden)document.title='🔔 Твой ход — Магнат';}
   prevTurnMe=mine;
@@ -784,6 +819,7 @@ function onEvent(d){
     case 'cash':floatMoney(d.pid,d.d);break;
     case 'pop':updateTile(d.i,true);break;
     case 'card':showCard(d);break;
+    case 'buy':flashTile(d.i);break;
     case 'bankrupt':{const e=$('tok'+d.pid);if(e)e.classList.add('gone');break;}
     case 'win':showWin(d);break;
   }
@@ -795,11 +831,18 @@ function animDice(a,b){
   const iv=setInterval(()=>{setDie(d1,1+rnd(6));setDie(d2,1+rnd(6));},75);
   setTimeout(()=>{clearInterval(iv);d1.classList.remove('rolling');d2.classList.remove('rolling');setDie(d1,a);setDie(d2,b);},800);
 }
+/* ---------- панель в центре стола ---------- */
+function cpShow(kind,html){const p=$('cpanel');if(!p)return null;p.dataset.kind=kind;p.innerHTML=html;p.hidden=false;return p;}
+function cpHide(kind){const p=$('cpanel');if(!p)return;if(!kind||p.dataset.kind===kind){p.hidden=true;p.innerHTML='';p.dataset.kind='';}}
+let hlSet=[];
+function clearHighlight(){hlSet.forEach(i=>{const el=$('tile'+i);if(el){el.classList.remove('hl','hl-auc');delete el.dataset.hl;}});hlSet=[];}
+function setHighlight(items){clearHighlight();items.forEach(o=>{const el=$('tile'+o.i);if(el){el.classList.add(o.cls||'hl');if(o.label)el.dataset.hl=o.label;}});hlSet=items.map(o=>o.i);}
+function flashTile(i){const el=$('tile'+i);if(!el)return;el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash');clearTimeout(el._ft);el._ft=setTimeout(()=>el.classList.remove('flash'),2800);}
+let cardSeq=0;
 function showCard(d){
-  const r=$('cardRoot'),p=G&&G.players[d.pid];
-  r.innerHTML=`<div class="mc cardm"><div class="who">Карту тянет: <b>${esc(p?p.name:'')}</b></div><div class="flip ${d.deck}"><div class="ct">${d.deck==='chance'?'ШАНС ❓':'СЮРПРИЗ 🎁'}</div><div class="cx">${esc(d.text)}</div></div></div>`;
-  r.classList.add('on');
-  setTimeout(()=>{r.classList.remove('on');r.innerHTML='';},3200);
+  const p=G&&G.players[d.pid],key=++cardSeq;
+  cpShow('card',`<div class="who">Карту тянет: <b>${esc(p?p.name:'')}</b></div><div class="flip ${d.deck}"><div class="ct">${d.deck==='chance'?'ШАНС ❓':'СЮРПРИЗ 🎁'}</div><div class="cx">${esc(d.text)}</div></div>`);
+  setTimeout(()=>{if(cardSeq===key)cpHide('card');},3200);
 }
 function confetti(){
   const L=$('confetti');L.innerHTML='';const cols=['#f2c14e','#e63946','#3a86ff','#2a9d8f','#ff4fa3','#8338ec'];
@@ -892,11 +935,13 @@ function renderManage(){
     }).join('')+'</div>';
   }).join('')||'<p class="muted">Пока нет имущества. Купи улицу, когда на неё встанешь.</p>';
   m.innerHTML=`<h3>🏘 Моё имущество</h3><div class="mcash">В кассе: <b>${money(p.cash)}</b></div>`+
+    (offerData&&offerData.to===me&&offerData.rc>0?`<div class="debt">Для обмена нужно отдать ${money(offerData.rc)}. В кассе ${money(p.cash)}${p.cash>=offerData.rc?': хватает ✓':': не хватает '+money(offerData.rc-p.cash)}.</div>`:'')+
     (debt?`<div class="debt">Нужно заплатить ${money(debt)}. ${p.cash>=debt?'Денег хватает.':'Не хватает '+money(debt-p.cash)+': продай дома или заложи улицы.'}</div>`:'')+
     `<div class="mlist">${rows}</div><div class="row">`+
-    (debt?`<button class="btn primary" data-f="ok" ${p.cash>=debt?'':'disabled'}>Заплатить</button><button class="btn danger" data-f="bank">Объявить банкротство</button>`:`<button class="btn primary" data-f="ok">Готово</button>`)+`</div>`;
+    (debt?`<button class="btn primary" data-f="ok" ${p.cash>=debt?'':'disabled'}>Заплатить</button><button class="btn danger" data-f="bank">Объявить банкротство</button>`:(tradeDraft?`<button class="btn" data-f="trade">← Вернуться к обмену</button>`:'')+`<button class="btn primary" data-f="ok">Готово</button>`)+`</div>`;
   m.onclick=e=>{
     const b=e.target.closest('button');if(!b||b.disabled)return;
+    if(b.dataset.f==='trade'){closeManage();openTrade();return;}
     if(b.dataset.f){const d=mm&&mm.debt;closeManage();if(d)send({t:'debtDone',bankrupt:b.dataset.f==='bank'});return;}
     send({t:'manage',a:b.dataset.a,i:+b.dataset.i});
   };
@@ -905,28 +950,36 @@ function renderManage(){
 /* ---------- обмен ---------- */
 const tradable=i=>{const t=BOARD[i];return t.type!=='street'||GROUP_IDX[t.grp].every(j=>G.houses[j]===0);};
 const tradeLine=(list,cash)=>{const a=list.map(i=>BOARD[i].name);if(cash)a.push(money(cash));return a.length?a.join(', '):'ничего';};
+let tradeDraft=null,offerData=null;
+function liquid(pl){let v=pl.cash;BOARD.forEach((t,i)=>{if(G.owner[i]!==pl.id)return;if(!G.mort[i])v+=t.price/2;if(t.type==='street')v+=G.houses[i]*GROUPS[t.grp].house/2;});return Math.floor(v);}
 function openTrade(){
   const w=G.waiting;if(!w||w.seat!==me||!curPrompt)return;
   const others=G.players.filter(x=>!x.bankrupt&&x.id!==me);if(!others.length)return;
-  const p=meP();let q=others[0].id;const S2={give:new Set(),get:new Set(),gc:0,rc:0};
+  const p=meP();
+  const dr=tradeDraft&&others.some(x=>x.id===tradeDraft.q)?tradeDraft:null;
+  let q=dr?dr.q:others[0].id;
+  const S2={give:new Set(dr?dr.give:[]),get:new Set(dr?dr.get:[]),gc:dr?dr.gc:0,rc:dr?dr.rc:0};
+  const save=()=>{tradeDraft={q,give:[...S2.give],get:[...S2.get],gc:S2.gc,rc:S2.rc};};
   const m=openModal('trade');mm={debt:0,trade:true};
   const render=()=>{
-    const o=G.players[q];
+    const o=G.players[q],me2=meP(),lo=liquid(o);
     const list=(pl,set)=>BOARD.map((_,i)=>i).filter(i=>G.owner[i]===pl.id&&tradable(i)).map(i=>`<label class="tp"><input type="checkbox" data-s="${set}" data-i="${i}" ${S2[set].has(i)?'checked':''}><i class="sw" style="background:${colorOf(i)}"></i>${BOARD[i].name}${G.mort[i]?' (залог)':''}</label>`).join('')||'<div class="muted">нет доступных</div>';
     m.innerHTML=`<h3>🤝 Обмен</h3><div class="pick">${others.map(x=>`<button class="chip${x.id===q?' on':''}" data-q="${x.id}">${x.emoji} ${esc(x.name)}</button>`).join('')}</div>`+
-      `<div class="cols"><div><h4>Ты отдаёшь</h4>${list(p,'give')}<label class="cashin">Деньги (макс. ${money(p.cash)})<input type="number" min="0" max="${p.cash}" value="${S2.gc}" data-c="gc"></label></div>`+
-      `<div><h4>Ты получаешь</h4>${list(o,'get')}<label class="cashin">Деньги (макс. ${money(o.cash)})<input type="number" min="0" max="${o.cash}" value="${S2.rc}" data-c="rc"></label></div></div>`+
+      `<div class="cols"><div><h4>Ты отдаёшь</h4>${list(me2,'give')}<label class="cashin">Деньги (в кассе ${money(me2.cash)})<input type="number" min="0" max="${me2.cash}" value="${S2.gc}" data-c="gc"></label><button class="btn mini" data-mg="1">🏦 Заложить имущество, чтобы набрать денег</button></div>`+
+      `<div><h4>Ты получаешь</h4>${list(o,'get')}<label class="cashin">Деньги (до ${money(lo)})<input type="number" min="0" max="${lo}" value="${S2.rc}" data-c="rc"></label><div class="muted">В кассе у ${esc(o.name)} ${money(o.cash)}. Недостающее он сможет добрать закладом.</div></div></div>`+
       `<div class="err" id="terr"></div><div class="row"><button class="btn primary" data-go="1">Предложить</button><button class="btn" data-x="1">Отмена</button></div>`;
   };
   m.onclick=e=>{
     const b=e.target.closest('button');if(!b)return;
     if(b.dataset.q){q=+b.dataset.q;S2.get.clear();S2.rc=0;render();}
-    else if(b.dataset.x){closeManage();}
+    else if(b.dataset.mg){save();closeManage();openManage(0);}
+    else if(b.dataset.x){tradeDraft=null;closeManage();}
     else if(b.dataset.go){
       const o=G.players[q];
-      if(S2.gc>p.cash||S2.rc>o.cash){$('terr').textContent='Не хватает денег для такой суммы.';return;}
+      if(S2.gc>meP().cash){$('terr').textContent='Тебе не хватает денег: заложи имущество или уменьши сумму.';return;}
+      if(S2.rc>liquid(o)){$('terr').textContent='У '+o.name+' не наберётся столько даже с закладом.';return;}
       if(!S2.give.size&&!S2.get.size&&!S2.gc&&!S2.rc){$('terr').textContent='Выбери, что обменять.';return;}
-      closeManage();
+      tradeDraft=null;closeManage();
       send({t:'act',id:w.id,choice:'trade',data:{q,give:[...S2.give],get:[...S2.get],gc:S2.gc,rc:S2.rc}});
     }
   };
@@ -935,35 +988,47 @@ function openTrade(){
   render();
 }
 function onTradeOffer(d){
-  const r=$('offerRoot');
-  if(d.close){r.classList.remove('on');r.innerHTML='';return;}
-  if(!G||d.to!==me)return;
-  const from=G.players[d.from];snd('card');
-  r.innerHTML=`<div class="mc trade"><h3>🤝 Тебе предлагают обмен</h3><p><b>${esc(from.name)}</b> отдаёт: ${esc(tradeLine(d.give,d.gc))}</p><p>Просит взамен: ${esc(tradeLine(d.get,d.rc))}</p><div class="row"><button class="btn primary" data-y="1">Принять</button><button class="btn" data-y="0">Отказаться</button></div></div>`;
-  r.classList.add('on');
-  r.firstChild.onclick=e=>{const b=e.target.closest('button');if(!b)return;send({t:'tradeReply',id:d.id,ok:b.dataset.y==='1'});r.classList.remove('on');r.innerHTML='';};
+  if(d.close){offerData=null;cpHide('offer');clearHighlight();return;}
+  if(!G)return;
+  offerData=d;snd('card');renderOffer();
+}
+function renderOffer(){
+  const d=offerData;if(!d||!G||!$('cpanel'))return;
+  const from=G.players[d.from],to=G.players[d.to],mine=d.to===me;
+  const chips=l=>l.map(i=>`<span class="tchip"><i class="sw" style="background:${colorOf(i)}"></i>${BOARD[i].name}${G.mort[i]?' (залог)':''}</span>`).join('');
+  const side=(pl,list,cash)=>`<div class="ofside"><div class="ofh"><span class="tkx" style="background:${pl.color}">${pl.emoji}</span>${esc(pl.name)} отдаёт</div>${chips(list)}${cash?`<span class="tchip cash">💵 ${money(cash)}</span>`:''}${!list.length&&!cash?'<span class="muted">ничего</span>':''}</div>`;
+  const have=G.players[d.to].cash,need=mine&&d.rc>0?Math.max(0,d.rc-have):0;
+  let html=`<h3>🤝 Предложение обмена</h3><div class="ofcols">${side(from,d.give,d.gc)}<div class="ofarrow">⇄</div>${side(to,d.get,d.rc)}</div>`;
+  if(mine){
+    if(need)html+=`<div class="need">Нужно отдать ${money(d.rc)}, а в кассе ${money(have)}. Не хватает ${money(need)}: заложи имущество, и кнопка «Принять» откроется.</div>`;
+    html+=`<div class="row ctr"><button class="btn primary" data-y="1" ${need?'disabled':''}>Принять</button><button class="btn" data-y="0">Отказаться</button><button class="btn" data-mg="1">🏦 Имущество</button></div>`;
+  }else html+=`<div class="muted">Ждём ответа: ${esc(to.name)}…</div>`;
+  const p=cpShow('offer',html);
+  p.onclick=e=>{const b=e.target.closest('button');if(!b||b.disabled)return;if(b.dataset.mg){openManage(0);return;}send({t:'tradeReply',id:d.id,ok:b.dataset.y==='1'});};
+  setHighlight(d.give.map(i=>({i,label:'→ '+to.name,cls:'hl'})).concat(d.get.map(i=>({i,label:'→ '+from.name,cls:'hl'}))));
 }
 
 /* ---------- аукцион ---------- */
 let aucTimer=null,aucKey=null;
 function renderAuction(){
-  const r=$('auctionRoot'),A=G&&G.auction;
+  const A=G&&G.auction;
   if(!A){
-    if(r.classList.contains('on')){r.classList.remove('on');r.innerHTML='';}
+    if(aucKey!==null){cpHide('auction');clearHighlight();}
     aucKey=null;clearInterval(aucTimer);aucTimer=null;return;
   }
+  const cp=$('cpanel');if(!cp)return;
   const p=G.players[me],t=BOARD[A.tile];
-  if(aucKey!==A.tile){
+  if(aucKey!==A.tile||cp.dataset.kind!=='auction'){
     aucKey=A.tile;
-    r.innerHTML=`<div class="mc auc"><h3>🔨 Аукцион</h3><div id="aucTile">${deedHTML(A.tile)}</div>
+    cpShow('auction',`<h3>🔨 Аукцион: ${esc(t.name)}</h3><div id="aucTile">${deedHTML(A.tile)}</div>
       <div class="aucBidRow">Ставка: <b id="aucBid"></b></div><div class="muted" id="aucLead"></div><div class="aucCd" id="aucCd"></div>
       <div class="aucBtns" id="aucBtns"><button class="btn" data-inc="10"></button><button class="btn" data-inc="50"></button><button class="btn" data-inc="100"></button></div>
       <form class="aucForm" id="aucForm" autocomplete="off"><input type="number" id="aucIn" step="10" placeholder="Своя сумма" aria-label="Своя ставка"><button class="btn primary" type="submit">Поставить</button></form>
-      <div class="aucFoot"><span class="muted" id="aucStat"></span><button class="btn" id="aucPass">Пас</button></div><div class="aucList" id="aucList"></div></div>`;
-    r.classList.add('on');
+      <div class="aucFoot"><span class="muted" id="aucStat"></span><button class="btn" id="aucPass">Пас</button></div><div class="aucList" id="aucList"></div>`);
     $('aucBtns').onclick=e=>{const b=e.target.closest('button');if(b&&!b.disabled)send({t:'bid',amount:+b.dataset.amt});};
     $('aucForm').onsubmit=e=>{e.preventDefault();const v=Math.floor(+$('aucIn').value);if(v>0){send({t:'bid',amount:v});$('aucIn').value='';}};
     $('aucPass').onclick=()=>send({t:'pass'});
+    setHighlight([{i:A.tile,label:'аукцион',cls:'hl-auc'}]);
     clearInterval(aucTimer);
     aucTimer=setInterval(()=>{const a=G&&G.auction,c=$('aucCd');if(a&&c)c.textContent='Осталось '+Math.max(0,Math.round((a.dl-Date.now())/1000))+' с';},250);
   }
@@ -1001,6 +1066,9 @@ $('bRules').onclick=()=>{
   <p><b>Вокзалы и службы:</b> чем больше вокзалов у владельца, тем выше аренда. За коммунальные платишь по кубикам: 4× или 10×, если обе службы у одного игрока.</p>
   <p><b>Залог:</b> улицу без построек можно заложить банку за половину цены. Выкуп стоит на 10% дороже.</p>
   <p><b>Обмен:</b> меняйся улицами и деньгами. Улицы с постройками обменивать нельзя.</p>
+  <p><b>Карты:</b> для 2–6 игроков доска на 40 клеток, для 7–8 на 48, для 9–10 на 56. Хозяин комнаты может выбрать карту вручную в лобби.</p>
+  <p><b>Аукцион:</b> если отказался покупать, клетку продают всем. Ставки от $10, торги закрываются через 11 секунд без новых ставок.</p>
+  <p><b>Обмен и заклад:</b> в обмене можно просить деньги, которых у игрока сейчас нет, если у него есть что заложить. Перед согласием он закладывает имущество, и кнопка «Принять» открывается.</p>
   <p><b>Тюрьма:</b> выйти можно за $50, картой, дублем или после третьей неудачной попытки.</p>
   <p><b>Долги:</b> если не хватает денег, продай дома и заложи улицы. Если и это не помогает, ты банкрот.</p>
   <p><b>Время:</b> на ход даётся 90 секунд, потом решение принимает бот. Если связь пропала, бот ходит за тебя и отдаёт управление, когда ты вернёшься.</p>
