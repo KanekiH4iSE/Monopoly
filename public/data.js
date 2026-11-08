@@ -103,7 +103,10 @@
     { t: 'gain', n: 100, text: 'Тебе досталось наследство: $100.' }
   ];
 
-  const MAG = { GROUPS, BOARD, GROUP_IDX, TOKENS, CHANCE, CHEST, gk };
+  const EMOJIS = ['🚗','🎩','🐶','🚀','👑','🐱','🛸','🦄','⚓','🎸','🦊','🐼','🐸','🐙','🦁','🐯','🐵','🦖','🐢','🦉',
+                  '🍕','🍔','🍩','🎮','⚽','🏀','🎲','💎','🔥','⭐','🌵','🤖','👻','🏎️','🚁','🎯'];
+  const COLORS = ['#e63946','#3a86ff','#e8913a','#8338ec','#d9a400','#2a9d8f','#00a6c8','#ff4fa3','#5c677d','#b5651d','#2f9e44','#212529'];
+  const MAG = { GROUPS, BOARD, GROUP_IDX, TOKENS, CHANCE, CHEST, EMOJIS, COLORS, gk };
   if (typeof module !== 'undefined' && module.exports) module.exports = MAG;
   else root.MAG = MAG;
 })(typeof self !== 'undefined' ? self : globalThis);

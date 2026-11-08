@@ -50,6 +50,7 @@ class Room {
   constructor(code) {
     this.code = code; this.players = []; this.state = 'lobby'; this.cash = 1500;
     this.game = null; this.hostP = null; this.idle = Date.now(); this.video = null; this.vidAt = 0;
+    this.chat = []; this.chatAt = new Map(); this.opts = { auction: true, jackpot: false };
   }
   broadcast(o) {
     const s = JSON.stringify(o);
@@ -57,19 +58,24 @@ class Room {
   }
   pushRoom() {
     const host = this.players.indexOf(this.hostP);
-    const list = this.players.map(q => ({ name: q.name, tok: q.tok, bot: q.bot, connected: q.bot ? true : q.connected }));
+    const list = this.players.map(q => ({ name: q.name, emoji: q.emoji, color: q.color, bot: q.bot, connected: q.bot ? true : q.connected }));
     this.players.forEach((p, i) => {
       if (p.bot || !p.connected) return;
-      send(p.ws, { t: 'room', code: this.code, state: this.state, cash: this.cash, host, you: i, players: list, video: this.video });
+      send(p.ws, { t: 'room', code: this.code, state: this.state, cash: this.cash, host, you: i, players: list, video: this.video, opts: this.opts });
     });
   }
   freeToken() {
-    const used = new Set(this.players.map(p => p.tok));
-    for (let i = 0; i < 10; i++) if (!used.has(i)) return i;
+    const ue = new Set(this.players.map(p => p.emoji)), uc = new Set(this.players.map(p => p.color));
+    for (let i = 0; i < MAG.TOKENS.length; i++) if (!ue.has(MAG.TOKENS[i][0]) && !uc.has(MAG.TOKENS[i][1])) return i;
+    for (let i = 0; i < MAG.EMOJIS.length; i++) if (!ue.has(MAG.EMOJIS[i])) return -i - 1;
     return 0;
   }
   add(name, ws, bot) {
-    const p = { name, tok: this.freeToken(), bot: !!bot, ws: bot ? null : ws, connected: !bot, secret: bot ? null : crypto.randomBytes(12).toString('hex') };
+    const ti = this.freeToken();
+    let emoji, color;
+    if (ti >= 0) [emoji, color] = MAG.TOKENS[ti];
+    else { emoji = MAG.EMOJIS[-ti - 1]; color = MAG.COLORS.find(c => !this.players.some(q => q.color === c)) || '#888888'; }
+    const p = { name, emoji, color, bot: !!bot, ws: bot ? null : ws, connected: !bot, uid: crypto.randomBytes(4).toString('hex'), secret: bot ? null : crypto.randomBytes(12).toString('hex') };
     this.players.push(p);
     if (!this.hostP && !bot) this.hostP = p;
     return p;
@@ -107,7 +113,8 @@ function attach(ws, room, player) {
   if (player.ws && player.ws !== ws) { player.ws.ctx = null; try { player.ws.close(); } catch {} }
   player.ws = ws; player.connected = true;
   ws.ctx = { room, player };
-  send(ws, { t: 'session', code: room.code, secret: player.secret });
+  send(ws, { t: 'session', code: room.code, secret: player.secret, uid: player.uid });
+  send(ws, { t: 'chatlog', msgs: room.chat });
 }
 
 function onMsg(ws, raw) {
@@ -159,6 +166,18 @@ function onMsg(ws, raw) {
     return;
   }
 
+  if (m.t === 'chat') {
+    const now = Date.now();
+    if (now - (room.chatAt.get(player) || 0) < 700) return;
+    room.chatAt.set(player, now);
+    const text = String(m.text || '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 200);
+    if (!text) return;
+    const msg = { uid: player.uid, name: player.name, emoji: player.emoji, color: player.color, text, ts: now };
+    room.chat.push(msg); if (room.chat.length > 60) room.chat.shift();
+    room.broadcast({ t: 'chat', msg });
+    return;
+  }
+
   if (m.t === 'video') {
     const now = Date.now();
     if (now - room.vidAt < 600) return;
@@ -177,13 +196,19 @@ function onMsg(ws, raw) {
   }
 
   if (room.state === 'lobby') {
-    if (m.t === 'token') {
+    if (m.t === 'style') {
       const i = Number.isInteger(m.seat) ? m.seat : seat;
-      if (i < 0 || i >= room.players.length || (i !== seat && !isHost)) return;
-      const used = new Set(room.players.filter((_, j) => j !== i).map(q => q.tok));
-      let t = room.players[i].tok;
-      do { t = (t + 1) % 10; } while (used.has(t));
-      room.players[i].tok = t; room.pushRoom();
+      const target = room.players[i];
+      if (!target || (i !== seat && !isHost)) return;
+      const emoji = String(m.emoji || target.emoji), color = String(m.color || target.color).toLowerCase();
+      if (!MAG.EMOJIS.includes(emoji) || !/^#[0-9a-f]{6}$/.test(color)) return;
+      if (room.players.some((q, j) => j !== i && (q.emoji === emoji || q.color === color))) return send(ws, { t: 'toast', msg: 'Этот смайл или цвет уже занят другим игроком.' });
+      target.emoji = emoji; target.color = color; room.pushRoom();
+    } else if (m.t === 'name') {
+      const n = cleanName(m.name);
+      if (n) { player.name = n; room.pushRoom(); }
+    } else if (m.t === 'opts' && isHost) {
+      room.opts = { auction: !!m.auction, jackpot: !!m.jackpot }; room.pushRoom();
     } else if (m.t === 'addbot' && isHost && room.players.length < 10) {
       const used = new Set(room.players.map(q => q.name));
       const nm = BOT_NAMES.map(n => 'Бот ' + n).find(n => !used.has(n)) || 'Бот ' + (room.players.length + 1);
@@ -216,6 +241,8 @@ function onMsg(ws, raw) {
   else if (m.t === 'manage') g.manageAction(seat, m.a, m.i);
   else if (m.t === 'debtDone') g.debtDone(seat, !!m.bankrupt);
   else if (m.t === 'tradeReply') g.tradeReply(seat, m.id, !!m.ok);
+  else if (m.t === 'bid') g.bid(seat, m.amount);
+  else if (m.t === 'pass') g.passAuction(seat);
 }
 
 /* ======================= Игровой движок ======================= */
@@ -225,12 +252,13 @@ function createGame(room) {
   let dead = false, seq = 0, lastData = null;
   const G = {
     players: room.players.map((rp, i) => ({
-      id: i, name: rp.name, tok: rp.tok, bot: rp.bot, cash: room.cash, pos: 0, inJail: false, jailTries: 0,
+      id: i, name: rp.name, emoji: rp.emoji, color: rp.color, bot: rp.bot, cash: room.cash, pos: 0, inJail: false, jailTries: 0,
       jf: [], bankrupt: false, tradeCd: 0, triedTrade: false
     })),
     turn: 0, doubles: 0, owner: Array(40).fill(null), houses: Array(40).fill(0), mort: Array(40).fill(false),
     decks: { chance: shuffle(CHANCE.slice()), chest: shuffle(CHEST.slice()) },
-    over: false, lastSum: 7, waiting: null, offer: null
+    over: false, lastSum: 7, waiting: null, offer: null, auction: null, pot: 0,
+    order: room.players.map((_, i) => i)
   };
 
   const sleep = ms => new Promise((res, rej) => setTimeout(() => (dead ? rej(CANCEL) : res()), ms * FAST));
@@ -245,10 +273,11 @@ function createGame(room) {
   function snapshot() {
     const w = G.waiting;
     return {
-      turn: G.turn, over: G.over, owner: G.owner, houses: G.houses, mort: G.mort,
-      waiting: w ? { seat: w.seat, phase: w.phase, id: w.id, deadline: w.deadline, info: w.info == null ? null : w.info, amt: w.amt || 0 } : null,
+      turn: G.turn, order: G.order, pot: G.pot, opts: room.opts, over: G.over, owner: G.owner, houses: G.houses, mort: G.mort,
+      waiting: w ? { seat: w.seat, phase: w.phase, id: w.id, deadline: w.deadline, left: Math.max(0, w.deadline - Date.now()), info: w.info == null ? null : w.info, amt: w.amt || 0 } : null,
+      auction: G.auction ? { tile: G.auction.tile, bid: G.auction.bid, leader: G.auction.leader, passed: G.auction.passed, deadline: G.auction.deadline, left: Math.max(0, G.auction.deadline - Date.now()) } : null,
       players: G.players.map((p, i) => ({
-        id: i, name: p.name, tok: p.tok, bot: p.bot, connected: p.bot ? true : !!(room.players[i] && room.players[i].connected),
+        id: i, name: p.name, emoji: p.emoji, color: p.color, bot: p.bot, connected: p.bot ? true : !!(room.players[i] && room.players[i].connected),
         cash: p.cash, pos: p.pos, inJail: p.inJail, jf: p.jf.length, bankrupt: p.bankrupt
       }))
     };
@@ -328,7 +357,15 @@ function createGame(room) {
   async function landOn(p, ctx = {}) {
     const t = BOARD[p.pos];
     if (['street', 'station', 'util'].includes(t.type)) await landProperty(p, p.pos, ctx);
-    else if (t.type === 'tax') { log(p, `платит налог ${money(t.amount)}`); banner(`${p.name}: налог ${money(t.amount)}`); await payMoney(p, t.amount, null); }
+    else if (t.type === 'tax') {
+      log(p, `платит налог ${money(t.amount)}`); banner(`${p.name}: налог ${money(t.amount)}`);
+      if (await payMoney(p, t.amount, null) && room.opts.jackpot) { G.pot += t.amount; sync(); }
+    }
+    else if (t.type === 'parking' && room.opts.jackpot && G.pot > 0) {
+      const pot = G.pot; G.pot = 0;
+      log(p, `забирает джекпот на парковке: <b>${money(pot)}</b>`); banner(`${p.name} срывает джекпот ${money(pot)}!`);
+      addCash(p, pot); snd('coin');
+    }
     else if (t.type === 'chance') await drawCard(p, 'chance');
     else if (t.type === 'chest') await drawCard(p, 'chest');
     else if (t.type === 'gojail') await sendToJail(p);
@@ -351,6 +388,7 @@ function createGame(room) {
         { id: 'skip', label: 'Отказаться' }
       ], 'buy', i);
       if (a === 'buy' && p.cash >= t.price) buyProp(p, i);
+      else if (room.opts.auction) { log(p, 'отказался от покупки — <b>аукцион</b>!'); await runAuction(i); }
       else log(p, 'отказался от покупки');
     } else if (o !== p.id) {
       const owner = G.players[o];
@@ -612,6 +650,7 @@ function createGame(room) {
       })();
     }
     if (G.offer && G.offer.to === seat) G.offer.close(false);
+    if (G.auction) G.auction.api.pass(seat);
   }
   function onReconnect(seat) {
     sync();
@@ -669,9 +708,127 @@ function createGame(room) {
       }
     }
   }
-  function nextTurn() { do { G.turn = (G.turn + 1) % G.players.length; } while (G.players[G.turn].bankrupt); }
+  function nextTurn() {
+    let k = G.order.indexOf(G.turn);
+    do { k = (k + 1) % G.order.length; G.turn = G.order[k]; } while (G.players[G.turn].bankrupt);
+  }
+  async function rollOff(ids, round) {
+    if (ids.length <= 1) return ids.slice();
+    if (round > 8) return shuffle(ids.slice());
+    const res = [];
+    for (const id of ids) {
+      const p = G.players[id];
+      G.turn = id; sync();
+      await ask(p, [{ id: 'roll', label: round > 1 ? '🎲 Бросить ещё раз (ничья)' : '🎲 Бросить на очередность', cls: 'primary' }], 'first');
+      const [a, b] = await rollDice(p);
+      res.push({ id, t: a + b });
+      await sleep(500);
+    }
+    const groups = new Map();
+    res.forEach(r => { if (!groups.has(r.t)) groups.set(r.t, []); groups.get(r.t).push(r.id); });
+    const out = [];
+    for (const t of [...groups.keys()].sort((x, y) => y - x)) {
+      const g = groups.get(t);
+      if (g.length > 1) {
+        log(null, `🤝 Ничья на ${t}: ${g.map(i => esc(G.players[i].name)).join(', ')} бросают ещё раз`);
+        banner('Ничья! Перебрасывают…'); await sleep(1200);
+        out.push(...await rollOff(g, round + 1));
+      } else out.push(g[0]);
+    }
+    return out;
+  }
+  async function decideOrder() {
+    banner('Кто ходит первым? Каждый бросает кубики');
+    log(null, '🎲 Определяем очередность: у кого сумма больше, тот ходит первым');
+    await sleep(1800);
+    const order = await rollOff(G.players.map(p => p.id), 1);
+    G.order = order; G.turn = order[0];
+    log(null, '📋 Порядок ходов: ' + order.map((id, k) => `${k + 1}. ${esc(G.players[id].name)}`).join(' · '));
+    sync(); banner(`${G.players[order[0]].name} ходит первым!`);
+    await sleep(2200);
+  }
+
+  /* ---------- аукцион ---------- */
+  const AUC_FIRST = 22000, AUC_BID = 11000;
+  const bidStep = b => (b < 100 ? 10 : b < 300 ? 20 : b < 800 ? 50 : 100);
+  const aucActive = () => G.players.filter(p => !p.bankrupt && !G.auction.passed.includes(p.id));
+  function botMax(p, i) {
+    const t = BOARD[i];
+    let v = t.price * (0.7 + Math.random() * 0.45);
+    if (t.type === 'street') {
+      const idx = GROUP_IDX[t.grp], others = idx.filter(j => j !== i);
+      const mine = others.filter(j => G.owner[j] === p.id).length;
+      if (mine === others.length) v *= 1.9; else if (mine > 0) v *= 1.25;
+      const oo = others.map(j => G.owner[j]);
+      if (!mine && oo.every(o => o !== null && o === oo[0] && o !== p.id)) v *= 1.5;
+    }
+    return Math.min(Math.floor(v / 10) * 10, p.cash - 60);
+  }
+  function runAuction(i) {
+    return new Promise(resolve => {
+      const t = BOARD[i];
+      const A = { tile: i, bid: 0, leader: null, passed: [], deadline: 0, timer: null, botTimers: [], max: {} };
+      G.auction = A;
+      const arm = () => {
+        clearTimeout(A.timer);
+        const ms = (A.leader === null ? AUC_FIRST : AUC_BID) * FAST;
+        A.deadline = Date.now() + ms;
+        A.timer = setTimeout(() => end(), ms);
+      };
+      const end = () => {
+        if (G.auction !== A || dead) return;
+        clearTimeout(A.timer); A.botTimers.forEach(clearTimeout); G.auction = null;
+        if (A.leader !== null) {
+          const w = G.players[A.leader];
+          addCash(w, -A.bid); G.owner[i] = w.id; pop(i); snd('buy');
+          log(w, `выигрывает аукцион: <b>${t.name}</b> за ${money(A.bid)}`); banner(`${w.name} забирает ${t.name} за ${money(A.bid)}`);
+        } else { log(null, `🔨 Аукцион: никто не купил <b>${t.name}</b>`); banner('Никто не купил, клетка остаётся свободной'); }
+        sync(); resolve();
+      };
+      const check = () => {
+        const act = aucActive();
+        if ((A.leader !== null && act.length <= 1) || (A.leader === null && act.length === 0)) end();
+      };
+      A.api = {
+        bid(seat, amount) {
+          const p = G.players[seat];
+          if (G.auction !== A || !p || p.bankrupt || A.passed.includes(seat) || A.leader === seat) return false;
+          amount = Math.floor(Number(amount));
+          if (!Number.isFinite(amount) || amount < A.bid + 10 || amount > p.cash) return false;
+          A.bid = amount; A.leader = seat; arm();
+          log(p, `ставит <b>${money(amount)}</b>`); snd('coin'); sync(); check();
+          return true;
+        },
+        pass(seat) {
+          const p = G.players[seat];
+          if (G.auction !== A || !p || p.bankrupt || A.passed.includes(seat) || A.leader === seat) return false;
+          A.passed.push(seat); log(p, 'пасует'); sync(); check();
+          return true;
+        }
+      };
+      const botStep = p => {
+        if (G.auction !== A || dead || A.passed.includes(p.id)) return;
+        if (A.leader !== p.id) {
+          const nb = A.bid === 0 ? 10 : A.bid + bidStep(A.bid);
+          if (nb <= Math.min(A.max[p.id], p.cash)) A.api.bid(p.id, nb);
+          else { A.api.pass(p.id); return; }
+        }
+        A.botTimers.push(setTimeout(() => botStep(p), (700 + rnd(1800)) * FAST));
+      };
+      log(null, `🔨 Аукцион на <b>${t.name}</b>: ставки от $10`); banner(`Аукцион: ${t.name}`);
+      arm(); sync();
+      G.players.filter(p => !p.bankrupt && !online(p)).forEach(p => {
+        A.max[p.id] = botMax(p, i);
+        A.botTimers.push(setTimeout(() => botStep(p), (600 + rnd(1600)) * FAST));
+      });
+      check();
+    });
+  }
+  const bid = (seat, amount) => { if (G.auction) G.auction.api.bid(seat, amount); };
+  const passAuction = seat => { if (G.auction) G.auction.api.pass(seat); };
   async function run() {
     try {
+      await decideOrder();
       while (!G.over) {
         const p = G.players[G.turn];
         if (p.bankrupt) { nextTurn(); continue; }
@@ -684,7 +841,7 @@ function createGame(room) {
   }
   function destroy() { dead = true; if (G.waiting) clearTimeout(G.waiting.timer); }
 
-  return { G, sync, run, act, manageAction, debtDone, tradeReply, onDisconnect, onReconnect, makeBot, destroy };
+  return { G, sync, run, act, manageAction, debtDone, tradeReply, onDisconnect, onReconnect, makeBot, destroy, bid, passAuction };
 }
 
 /* ======================= WebSocket ======================= */
