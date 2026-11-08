@@ -20,7 +20,8 @@ const rnd = n => crypto.randomInt(n);
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const send = (ws, o) => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); };
 const cleanName = s => String(s || '').replace(/[\u0000-\u001f<>&"]/g, '').trim().slice(0, 14);
-const BOT_NAMES = ['Алиса', 'Борис', 'Вера', 'Глеб', 'Дина', 'Егор', 'Жанна', 'Захар', 'Ира', 'Кирилл'];
+const MAX_PLAYERS = 12;
+const BOT_NAMES = ['Алиса', 'Борис', 'Вера', 'Глеб', 'Дина', 'Егор', 'Жанна', 'Захар', 'Ира', 'Кирилл', 'Лев', 'Мила'];
 
 /* ======================= HTTP ======================= */
 const server = http.createServer((req, res) => {
@@ -163,7 +164,7 @@ function onMsg(ws, raw) {
     const room = rooms.get(String(m.code || '').toUpperCase().trim());
     if (!room) return send(ws, { t: 'err', msg: 'Комната с таким кодом не найдена.' });
     if (room.state !== 'lobby') return send(ws, { t: 'err', msg: 'Игра в этой комнате уже идёт.' });
-    if (room.players.length >= 10) return send(ws, { t: 'err', msg: 'В комнате уже 10 игроков.' });
+    if (room.players.length >= MAX_PLAYERS) return send(ws, { t: 'err', msg: 'В комнате уже ' + MAX_PLAYERS + ' игроков.' });
     if (ws.ctx) detachWs(ws);
     const p = room.add(cleanName(m.name) || 'Игрок', ws, false);
     attach(ws, room, p); room.pushRoom();
@@ -234,11 +235,11 @@ function onMsg(ws, raw) {
     } else if (m.t === 'name') {
       const n = cleanName(m.name);
       if (n) { player.name = n; room.pushRoom(); }
-    } else if (m.t === 'map' && isHost && ['auto', 'classic', 'large', 'xl'].includes(m.map)) {
+    } else if (m.t === 'map' && isHost && ['auto', 'classic', 'large', 'xl', 'mega'].includes(m.map)) {
       room.mapSel = m.map; room.pushRoom();
     } else if (m.t === 'opts' && isHost) {
       room.opts = { auction: !!m.auction, jackpot: !!m.jackpot }; room.pushRoom();
-    } else if (m.t === 'addbot' && isHost && room.players.length < 10) {
+    } else if (m.t === 'addbot' && isHost && room.players.length < MAX_PLAYERS) {
       const used = new Set(room.players.map(q => q.name));
       const nm = BOT_NAMES.map(n => 'Бот ' + n).find(n => !used.has(n)) || 'Бот ' + (room.players.length + 1);
       room.add(nm, null, true); room.pushRoom();

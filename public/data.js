@@ -13,6 +13,7 @@
     util:   { c: '#a7a05a', house: 0,   name: 'Коммунальные' }
   };
   GROUPS.teal = { c: '#14b8a6', house: 100, name: 'Бирюзовые' };
+  GROUPS.violet = { c: '#8e44ad', house: 150, name: 'Фиолетовые' };
   const S = (name, grp, price, rent) => ({ type: 'street', name, grp, price, rent });
   const ST = name => ({ type: 'station', name, price: 200 });
   const UT = name => ({ type: 'util', name, price: 150 });
@@ -26,6 +27,7 @@
     hanoi: S('Ханой', 'brown', 60, [2, 10, 30, 90, 160, 250]),
     manila: S('Манила', 'brown', 60, [4, 20, 60, 180, 320, 450]),
     jakarta: S('Джакарта', 'brown', 80, [5, 25, 75, 210, 360, 520]),
+    lagos: S('Лагос', 'brown', 80, [5, 25, 75, 210, 360, 520]),
     cairo: S('Каир', 'lblue', 100, [6, 30, 90, 270, 400, 550]),
     lima: S('Лима', 'lblue', 100, [6, 30, 90, 270, 400, 550]),
     bogota: S('Богота', 'lblue', 120, [8, 40, 100, 300, 450, 600]),
@@ -48,6 +50,9 @@
     singapore: S('Сингапур', 'yellow', 260, [22, 110, 330, 800, 975, 1150]),
     tokyo: S('Токио', 'yellow', 280, [24, 120, 360, 850, 1025, 1200]),
     osaka: S('Осака', 'yellow', 290, [26, 130, 380, 875, 1050, 1225]),
+    toronto: S('Торонто', 'violet', 290, [25, 125, 370, 860, 1040, 1215]),
+    vancouver: S('Ванкувер', 'violet', 290, [25, 125, 370, 860, 1040, 1215]),
+    montreal: S('Монреаль', 'violet', 310, [27, 135, 400, 950, 1150, 1325]),
     london: S('Лондон', 'green', 300, [26, 130, 390, 900, 1100, 1275]),
     paris: S('Париж', 'green', 300, [26, 130, 390, 900, 1100, 1275]),
     dubai: S('Дубай', 'green', 320, [28, 150, 450, 1000, 1200, 1400]),
@@ -56,8 +61,8 @@
     shanghai: S('Шанхай', 'dblue', 380, [45, 190, 550, 1250, 1500, 1800]),
     hongkong: S('Гонконг', 'dblue', 400, [50, 200, 600, 1400, 1700, 2000]),
     stN: ST('Северный вокзал'), stE: ST('Восточный порт'), stS: ST('Южный аэропорт'), stW: ST('Западный терминал'),
-    stC: ST('Центральная станция'), stSea: ST('Морской порт'),
-    utE: UT('Электростанция'), utW: UT('Водоканал'), utI: UT('Интернет‑провайдер'),
+    stC: ST('Центральная станция'), stSea: ST('Морской порт'), stCargo: ST('Грузовой порт'),
+    utE: UT('Электростанция'), utW: UT('Водоканал'), utI: UT('Интернет‑провайдер'), utG: UT('Газовая служба'),
     taxI: TX('Налог на доход', 200, '💸'), taxL: TX('Налог на роскошь', 100, '💎'), taxP: TX('Налог на недвижимость', 150, '🏛️')
   };
   const gk = t => (t.type === 'street' ? t.grp : t.type);
@@ -89,9 +94,15 @@
       left: [T.istanbul, T.utE, T.athens, T.lisbon, T.barcelona, T.stE, T.prague, CS, T.vienna, T.budapest, T.krakow, T.sydney, T.melbourne],
       top: [T.madrid, CH, T.rome, T.berlin, T.milan, T.stS, CS, T.seoul, T.singapore, T.utW, T.tokyo, T.osaka, T.stC],
       right: [T.london, T.paris, CS, T.dubai, T.amsterdam, CH, T.stW, T.taxP, CH, T.newyork, T.taxL, T.shanghai, T.hongkong]
-    }, { scale: 1.2, tk: .85, tf: .9 })
+    }, { scale: 1.2, tk: .85, tf: .9 }),
+    mega: makeMap('mega', 'Мега', '64 клетки, для 11–12 игроков', {
+      bottom: [T.hanoi, CS, T.manila, T.jakarta, T.lagos, T.taxI, T.stN, T.cairo, CH, T.lima, T.bogota, T.casablanca, T.utI, T.stSea, CS],
+      left: [T.istanbul, T.utE, T.athens, T.lisbon, T.barcelona, T.stE, T.prague, CS, T.vienna, T.budapest, T.krakow, CH, T.sydney, T.melbourne, T.utG],
+      top: [T.madrid, CH, T.rome, T.berlin, T.milan, T.stS, CS, T.seoul, T.singapore, T.utW, T.tokyo, T.osaka, T.stC, T.toronto, T.vancouver],
+      right: [T.montreal, T.london, T.paris, CS, T.dubai, T.amsterdam, CH, T.stW, T.taxP, CH, T.newyork, T.taxL, T.shanghai, T.stCargo, T.hongkong]
+    }, { scale: 1.3, tk: .8, tf: .85 })
   };
-  const autoMap = n => (n <= 6 ? 'classic' : n <= 8 ? 'large' : 'xl');
+  const autoMap = n => (n <= 6 ? 'classic' : n <= 8 ? 'large' : n <= 10 ? 'xl' : 'mega');
   const BOARD = MAPS.classic.BOARD, GROUP_IDX = MAPS.classic.GROUP_IDX;
 
   const TOKENS = [['🚗', '#e63946'], ['🎩', '#3a86ff'], ['🐶', '#e8913a'], ['🚀', '#8338ec'], ['👑', '#d9a400'],
